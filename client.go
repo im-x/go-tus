@@ -61,6 +61,33 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 	return c.client.Do(req)
 }
 
+func (c *Client) HEAD(key string) (*http.Response, error) {
+	req, err := http.NewRequest("HEAD", c.Url + key, nil)
+
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := c.Do(req)
+
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+
+	switch res.StatusCode {
+	case 200:
+		return res, nil
+	case 403, 404, 410:
+		// file doesn't exists.
+		return nil, ErrUploadNotFound
+	case 412:
+		return nil, ErrVersionMismatch
+	default:
+		return nil, newClientError(res)
+	}
+}
+
 // CreateUpload creates a new upload in the server.
 func (c *Client) CreateUpload(u *Upload) (*Uploader, error) {
 	if u == nil {
