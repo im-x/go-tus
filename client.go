@@ -61,8 +61,8 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 	return c.client.Do(req)
 }
 
-func (c *Client) HEAD(key string) (*http.Response, error) {
-	req, err := http.NewRequest("HEAD", c.Url + key, nil)
+func (c *Client) Head(key string) (*http.Response, error) {
+	req, err := http.NewRequest("HEAD", c.Url+key, nil)
 
 	if err != nil {
 		return nil, err
