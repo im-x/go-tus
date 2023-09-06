@@ -9,7 +9,7 @@ package main
 
 import (
     "os"
-    "github.com/eventials/go-tus"
+    "github.com/im-x/go-tus"
 )
 
 func main() {
