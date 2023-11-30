@@ -2,14 +2,16 @@ package tus
 
 import (
 	"bytes"
+	"errors"
 )
 
 type Uploader struct {
-	client  *Client
-	url     string
-	upload  *Upload
-	offset  int64
-	aborted bool
+	client   *Client
+	url      string
+	upload   *Upload
+	offset   int64
+	aborted  bool
+	fileInfo string
 }
 
 // Abort aborts the upload process.
@@ -34,16 +36,20 @@ func (u *Uploader) Offset() int64 {
 }
 
 // Upload uploads the entire body to the server.
-func (u *Uploader) Upload() error {
+func (u *Uploader) Upload() (string, error) {
 	for u.offset < u.upload.size && !u.aborted {
 		err := u.UploadChunck()
+		// 有fileinfo,直接上传完成
+		if u.fileInfo != "" {
+			return u.fileInfo, nil
+		}
 
 		if err != nil {
-			return err
+			return "", err
 		}
 	}
 
-	return nil
+	return "", errors.New("server not return file info")
 }
 
 // UploadChunck uploads a single chunck.
@@ -64,8 +70,12 @@ func (u *Uploader) UploadChunck() error {
 
 	body := bytes.NewBuffer(data[:size])
 
-	newOffset, err := u.client.uploadChunck(u.url, body, int64(size), u.offset)
-
+	newOffset, fileInfo, err := u.client.uploadChunck(u.url, body, int64(size), u.offset)
+	u.fileInfo = fileInfo
+	// 有fileinfo则表示上传成功
+	if len(u.fileInfo) != 0 {
+		return nil
+	}
 	if err != nil {
 		return err
 	}
@@ -83,6 +93,7 @@ func NewUploader(client *Client, url string, upload *Upload, offset int64) *Uplo
 		upload,
 		offset,
 		false,
+		"",
 	}
 	return uploader
 }

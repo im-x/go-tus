@@ -164,7 +164,7 @@ func (c *Client) CreateOrResumeUpload(u *Upload) (*Uploader, error) {
 	return nil, err
 }
 
-func (c *Client) uploadChunck(url string, body io.Reader, size int64, offset int64) (int64, error) {
+func (c *Client) uploadChunck(url string, body io.Reader, size int64, offset int64) (int64, string, error) {
 	var method string
 
 	if !c.Config.OverridePatchMethod {
@@ -176,7 +176,7 @@ func (c *Client) uploadChunck(url string, body io.Reader, size int64, offset int
 	req, err := http.NewRequest(method, url, body)
 
 	if err != nil {
-		return -1, err
+		return -1, "", err
 	}
 
 	req.Header.Set("Content-Type", "application/offset+octet-stream")
@@ -190,25 +190,25 @@ func (c *Client) uploadChunck(url string, body io.Reader, size int64, offset int
 	res, err := c.Do(req)
 
 	if err != nil {
-		return -1, err
+		return -1, "", err
 	}
 	defer res.Body.Close()
 
 	switch res.StatusCode {
 	case 204:
 		if newOffset, err := strconv.ParseInt(res.Header.Get("Upload-Offset"), 10, 64); err == nil {
-			return newOffset, nil
+			return newOffset, res.Header.Get("FileInfo"), nil
 		} else {
-			return -1, err
+			return -1, res.Header.Get("FileInfo"), err
 		}
 	case 409:
-		return -1, ErrOffsetMismatch
+		return -1, res.Header.Get("FileInfo"), ErrOffsetMismatch
 	case 412:
-		return -1, ErrVersionMismatch
+		return -1, res.Header.Get("FileInfo"), ErrVersionMismatch
 	case 413:
-		return -1, ErrLargeUpload
+		return -1, res.Header.Get("FileInfo"), ErrLargeUpload
 	default:
-		return -1, newClientError(res)
+		return -1, res.Header.Get("FileInfo"), newClientError(res)
 	}
 }
 
