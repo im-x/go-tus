@@ -62,19 +62,20 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 }
 
 // CreateUpload creates a new upload in the server.
-func (c *Client) CreateUpload(u *Upload) (*Uploader, error) {
+// 第二个参数为true代表文件已经上传，秒传通过
+func (c *Client) CreateUpload(u *Upload) (*Uploader, bool, error) {
 	if u == nil {
-		return nil, ErrNilUpload
+		return nil, false, ErrNilUpload
 	}
 
 	if c.Config.Resume && len(u.Fingerprint) == 0 {
-		return nil, ErrFingerprintNotSet
+		return nil, false, ErrFingerprintNotSet
 	}
 
 	req, err := http.NewRequest("POST", c.Url, nil)
 
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	req.Header.Set("Content-Length", "0")
@@ -84,9 +85,15 @@ func (c *Client) CreateUpload(u *Upload) (*Uploader, error) {
 	res, err := c.Do(req)
 
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	defer res.Body.Close()
+
+	if res.Header.Get("FileInfo") != "" {
+		uploader := NewUploader(c, res.Header.Get("Location"), u, 0)
+		uploader.fileInfo = res.Header.Get("FileInfo")
+		return uploader, true, nil
+	}
 
 	switch res.StatusCode {
 	case 201:
@@ -94,12 +101,12 @@ func (c *Client) CreateUpload(u *Upload) (*Uploader, error) {
 
 		baseUrl, err := netUrl.Parse(c.Url)
 		if err != nil {
-			return nil, ErrUrlNotRecognized
+			return nil, false, ErrUrlNotRecognized
 		}
 
 		newUrl, err := netUrl.Parse(url)
 		if err != nil {
-			return nil, ErrUrlNotRecognized
+			return nil, false, ErrUrlNotRecognized
 		}
 		if newUrl.Scheme == "" {
 			newUrl.Scheme = baseUrl.Scheme
@@ -110,13 +117,13 @@ func (c *Client) CreateUpload(u *Upload) (*Uploader, error) {
 			c.Config.Store.Set(u.Fingerprint, url)
 		}
 
-		return NewUploader(c, url, u, 0), nil
+		return NewUploader(c, url, u, 0), false, nil
 	case 412:
-		return nil, ErrVersionMismatch
+		return nil, false, ErrVersionMismatch
 	case 413:
-		return nil, ErrLargeUpload
+		return nil, false, ErrLargeUpload
 	default:
-		return nil, newClientError(res)
+		return nil, false, newClientError(res)
 	}
 }
 
@@ -148,20 +155,20 @@ func (c *Client) ResumeUpload(u *Upload) (*Uploader, error) {
 }
 
 // CreateOrResumeUpload resumes the upload if already created or creates a new upload in the server.
-func (c *Client) CreateOrResumeUpload(u *Upload) (*Uploader, error) {
+func (c *Client) CreateOrResumeUpload(u *Upload) (*Uploader, bool, error) {
 	if u == nil {
-		return nil, ErrNilUpload
+		return nil, false, ErrNilUpload
 	}
 
 	uploader, err := c.ResumeUpload(u)
 
 	if err == nil {
-		return uploader, err
+		return uploader, false, err
 	} else if (err == ErrResumeNotEnabled) || (err == ErrUploadNotFound) {
 		return c.CreateUpload(u)
 	}
 
-	return nil, err
+	return nil, false, err
 }
 
 func (c *Client) uploadChunck(url string, body io.Reader, size int64, offset int64) (int64, string, error) {

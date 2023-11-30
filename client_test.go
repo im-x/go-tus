@@ -105,11 +105,11 @@ func (s *UploadTestSuite) TestSmallUploadFromFile() {
 	upload, err := NewUploadFromFile(f)
 	s.Nil(err)
 
-	uploader, err := client.CreateUpload(upload)
+	uploader, _, err := client.CreateUpload(upload)
 	s.Nil(err)
 	s.NotNil(uploader)
 
-	err = uploader.Upload()
+	_, err = uploader.Upload()
 	s.Nil(err)
 
 	up, err := s.store.GetUpload(ctx, uploadIDFromURL(uploader.url))
@@ -142,11 +142,11 @@ func (s *UploadTestSuite) TestLargeUpload() {
 	upload, err := NewUploadFromFile(f)
 	s.Nil(err)
 
-	uploader, err := client.CreateUpload(upload)
+	uploader, _, err := client.CreateUpload(upload)
 	s.Nil(err)
 	s.NotNil(uploader)
 
-	err = uploader.Upload()
+	_, err = uploader.Upload()
 	s.Nil(err)
 
 	up, err := s.store.GetUpload(ctx, uploadIDFromURL(uploader.url))
@@ -169,11 +169,11 @@ func (s *UploadTestSuite) TestUploadFromBytes() {
 	upload := NewUploadFromBytes([]byte("1234567890"))
 	s.Nil(err)
 
-	uploader, err := client.CreateUpload(upload)
+	uploader, _, err := client.CreateUpload(upload)
 	s.Nil(err)
 	s.NotNil(uploader)
 
-	err = uploader.Upload()
+	_, err = uploader.Upload()
 	s.Nil(err)
 
 	up, err := s.store.GetUpload(ctx, uploadIDFromURL(uploader.url))
@@ -198,11 +198,11 @@ func (s *UploadTestSuite) TestOverridePatchMethod() {
 	upload := NewUploadFromBytes([]byte("1234567890"))
 	s.Nil(err)
 
-	uploader, err := client.CreateUpload(upload)
+	uploader, _, err := client.CreateUpload(upload)
 	s.Nil(err)
 	s.NotNil(uploader)
 
-	err = uploader.Upload()
+	_, err = uploader.Upload()
 	s.Nil(err)
 
 	up, err := s.store.GetUpload(ctx, uploadIDFromURL(uploader.url))
@@ -243,11 +243,11 @@ func (s *UploadTestSuite) TestConcurrentUploads() {
 			upload, err := NewUploadFromFile(f)
 			s.Nil(err)
 
-			uploader, err := client.CreateUpload(upload)
+			uploader, _, err := client.CreateUpload(upload)
 			s.Nil(err)
 			s.NotNil(uploader)
 
-			err = uploader.Upload()
+			_, err = uploader.Upload()
 			s.Nil(err)
 
 			up, err := s.store.GetUpload(ctx, uploadIDFromURL(uploader.url))
@@ -294,7 +294,7 @@ func (s *UploadTestSuite) TestResumeUpload() {
 	upload, err := NewUploadFromFile(f)
 	s.Nil(err)
 
-	uploader, err := client.CreateUpload(upload)
+	uploader, _, err := client.CreateUpload(upload)
 	s.Nil(err)
 	s.NotNil(uploader)
 
@@ -304,7 +304,7 @@ func (s *UploadTestSuite) TestResumeUpload() {
 		uploader.Abort()
 	}()
 
-	err = uploader.Upload()
+	_, err = uploader.Upload()
 	s.Nil(err)
 
 	s.True(uploader.aborted)
@@ -313,7 +313,7 @@ func (s *UploadTestSuite) TestResumeUpload() {
 	s.Nil(err)
 	s.NotNil(uploader)
 
-	err = uploader.Upload()
+	_, err = uploader.Upload()
 	s.Nil(err)
 
 	up, err := s.store.GetUpload(ctx, uploadIDFromURL(uploader.url))

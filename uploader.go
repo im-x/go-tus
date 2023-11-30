@@ -35,6 +35,13 @@ func (u *Uploader) Offset() int64 {
 	return u.offset
 }
 
+func (u *Uploader) GetFileInfo() string {
+	if u == nil {
+		return ""
+	}
+	return u.fileInfo
+}
+
 // Upload uploads the entire body to the server.
 func (u *Uploader) Upload() (string, error) {
 	for u.offset < u.upload.size && !u.aborted {
