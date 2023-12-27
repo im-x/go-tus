@@ -71,8 +71,12 @@ func (c *Client) CreateUpload(u *Upload) (*Uploader, bool, error) {
 	if c.Config.Resume && len(u.Fingerprint) == 0 {
 		return nil, false, ErrFingerprintNotSet
 	}
+	var body io.Reader = u.stream
+	if !u.ImageFastUpload {
+		body = nil
+	}
 
-	req, err := http.NewRequest("POST", c.Url, nil)
+	req, err := http.NewRequest("POST", c.Url, body)
 
 	if err != nil {
 		return nil, false, err
@@ -81,6 +85,9 @@ func (c *Client) CreateUpload(u *Upload) (*Uploader, bool, error) {
 	req.Header.Set("Content-Length", "0")
 	req.Header.Set("Upload-Length", strconv.FormatInt(u.size, 10))
 	req.Header.Set("Upload-Metadata", u.EncodedMetadata())
+	if u.ImageFastUpload {
+		req.Header.Set("Image-Fast-Upload", "true")
+	}
 
 	res, err := c.Do(req)
 

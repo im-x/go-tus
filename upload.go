@@ -15,8 +15,9 @@ type Upload struct {
 	stream io.ReadSeeker
 	size   int64
 
-	Fingerprint string
-	Metadata    Metadata
+	Fingerprint     string
+	Metadata        Metadata
+	ImageFastUpload bool
 }
 
 // Size Returns the size of the upload body.
@@ -49,17 +50,17 @@ func NewUploadFromFile(f *os.File) (*Upload, error) {
 
 	fingerprint := fmt.Sprintf("%s-%d-%s", fi.Name(), fi.Size(), fi.ModTime())
 
-	return NewUpload(f, fi.Size(), metadata, fingerprint), nil
+	return NewUpload(f, fi.Size(), metadata, fingerprint, false), nil
 }
 
 // NewUploadFromBytes creates a new upload from a byte array.
 func NewUploadFromBytes(b []byte) *Upload {
 	buffer := bytes.NewReader(b)
-	return NewUpload(buffer, buffer.Size(), nil, "")
+	return NewUpload(buffer, buffer.Size(), nil, "", false)
 }
 
 // NewUpload creates a new upload from an io.Reader.
-func NewUpload(reader io.Reader, size int64, metadata Metadata, fingerprint string) *Upload {
+func NewUpload(reader io.Reader, size int64, metadata Metadata, fingerprint string, imageFastUpload bool) *Upload {
 	stream, ok := reader.(io.ReadSeeker)
 
 	if !ok {
@@ -73,11 +74,11 @@ func NewUpload(reader io.Reader, size int64, metadata Metadata, fingerprint stri
 	}
 
 	return &Upload{
-		stream: stream,
-		size:   size,
-
-		Fingerprint: fingerprint,
-		Metadata:    metadata,
+		stream:          stream,
+		size:            size,
+		ImageFastUpload: imageFastUpload,
+		Fingerprint:     fingerprint,
+		Metadata:        metadata,
 	}
 }
 
